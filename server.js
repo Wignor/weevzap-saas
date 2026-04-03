@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const axios = require("axios");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
@@ -66,15 +67,25 @@ app.post("/login", async (req, res) => {
 // ===== SALVAR INTEGRAÇÕES =====
 
 app.post("/save-integrations", async (req, res) => {
-  const { user_id, evolution_url, evolution_key, n8n_webhook, openai_key } = req.body;
-
-  await supabase.from("integrations").upsert({
+  const {
     user_id,
     evolution_url,
     evolution_key,
     n8n_webhook,
-    openai_key
+    openai_key,
+    assistant_id
+  } = req.body;
+
+  const { error } = await supabase.from("integrations").upsert({
+    user_id,
+    evolution_url,
+    evolution_key,
+    n8n_webhook,
+    openai_key,
+    assistant_id
   });
+
+  if (error) return res.status(400).json({ error: error.message });
 
   res.json({ success: true });
 });
@@ -84,12 +95,46 @@ app.post("/save-integrations", async (req, res) => {
 app.post("/save-agent", async (req, res) => {
   const { user_id, prompt } = req.body;
 
-  await supabase.from("agents").upsert({
+  const { error } = await supabase.from("agents").upsert({
     user_id,
     prompt
   });
 
+  if (error) return res.status(400).json({ error: error.message });
+
   res.json({ success: true });
+});
+
+// ===== CONECTAR WHATSAPP (EVOLUTION) =====
+
+app.post("/connect-whatsapp", async (req, res) => {
+  const { user_id } = req.body;
+
+  const { data } = await supabase
+    .from("integrations")
+    .select("*")
+    .eq("user_id", user_id)
+    .single();
+
+  if (!data) return res.status(400).json({ error: "Integrações não encontradas" });
+
+  try {
+    const response = await axios.post(
+      `${data.evolution_url}/instance/create`,
+      {
+        instanceName: "weevzap_" + user_id
+      },
+      {
+        headers: {
+          apikey: data.evolution_key
+        }
+      }
+    );
+
+    res.json(response.data);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao conectar WhatsApp" });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
