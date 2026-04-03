@@ -93,6 +93,19 @@ input {
 .status-off {
   color:#ef4444;
 }
+
+/* QR */
+#qrcode {
+  margin-top:20px;
+  text-align:center;
+}
+
+#qrcode img {
+  max-width:220px;
+  border-radius:10px;
+  background:white;
+  padding:10px;
+}
 </style>
 </head>
 
@@ -114,13 +127,15 @@ input {
     <h2>Status</h2>
     <p id="status">WhatsApp: <span class="status-off">Desconectado</span></p>
     <button onclick="connectWhats()">Conectar WhatsApp</button>
+
+    <div id="qrcode"></div>
   </div>
 
   <!-- INTEGRAÇÕES -->
   <div class="card">
     <h2>Integrações</h2>
 
-    <input id="evo_url" placeholder="URL Evolution API">
+    <input id="evo_url" placeholder="URL Evolution API (ex: https://api.seudominio.com)">
     <input id="evo_key" placeholder="API Key Evolution">
 
     <input id="n8n" placeholder="Webhook n8n">
@@ -140,8 +155,16 @@ if(!user){
   window.location.href = "/";
 }
 
+// 🔥 AJUSTE AUTOMÁTICO DA URL (remove /manager)
+function fixUrl(url){
+  return url.replace("/manager", "").replace(/\/$/, "");
+}
+
 // 🚀 CONECTAR WHATS
 async function connectWhats(){
+
+  document.getElementById("qrcode").innerHTML = "⏳ Conectando...";
+
   const res = await fetch("/connect-whatsapp", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
@@ -151,23 +174,42 @@ async function connectWhats(){
   const data = await res.json();
 
   if(data.error){
+    document.getElementById("qrcode").innerHTML = "";
     alert(data.error);
-  } else {
-    document.getElementById("status").innerHTML =
-      'WhatsApp: <span class="status-ok">Conectado (escaneie QR no Evolution)</span>';
+    return;
+  }
 
-    alert("Instância criada! Vá no Evolution e escaneie o QR Code.");
+  document.getElementById("status").innerHTML =
+    'WhatsApp: <span class="status-ok">Aguardando conexão</span>';
+
+  // 🔥 MOSTRAR QR CODE (se vier da Evolution)
+  if(data.qrcode){
+    document.getElementById("qrcode").innerHTML =
+      `<img src="${data.qrcode}" />`;
+  } else {
+    document.getElementById("qrcode").innerHTML =
+      "⚠️ QR não retornado. Veja no Evolution.";
   }
 }
 
 // 💾 SALVAR INTEGRAÇÕES
 async function saveIntegrations(){
+
+  let evoUrl = document.getElementById("evo_url").value;
+
+  if(!evoUrl || !document.getElementById("evo_key").value){
+    alert("Preencha Evolution URL e API Key");
+    return;
+  }
+
+  evoUrl = fixUrl(evoUrl); // 🔥 remove /manager automaticamente
+
   const res = await fetch("/save-integrations", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       user_id: user.id,
-      evolution_url: document.getElementById("evo_url").value,
+      evolution_url: evoUrl,
       evolution_key: document.getElementById("evo_key").value,
       n8n_webhook: document.getElementById("n8n").value,
       openai_key: document.getElementById("openai").value,
