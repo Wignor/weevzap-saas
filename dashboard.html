@@ -121,10 +121,20 @@ input, textarea {
 
 <script>
 
+<script>
+
 const user = JSON.parse(localStorage.getItem("user"));
 
-function connectWhats(){
-  alert("Aqui vamos integrar com Evolution API no próximo passo");
+async function connectWhats(){
+  const res = await fetch("/connect-whatsapp", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ user_id: user.id })
+  });
+
+  const data = await res.json();
+
+  alert(data.qrcode ? "QR Code gerado!" : "Erro ao conectar");
 }
 
 async function saveIntegrations(){
@@ -136,7 +146,8 @@ async function saveIntegrations(){
       evolution_url: document.getElementById("evo_url").value,
       evolution_key: document.getElementById("evo_key").value,
       n8n_webhook: document.getElementById("n8n").value,
-      openai_key: document.getElementById("openai").value
+      openai_key: document.getElementById("openai").value,
+      assistant_id: document.getElementById("assistant").value
     })
   });
 
