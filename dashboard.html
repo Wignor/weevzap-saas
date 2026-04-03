@@ -1,7 +1,161 @@
-<script>
-const token = localStorage.getItem("token");
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>WeevZap Painel</title>
 
-if (!token) {
-  window.location.href = "/";
+<link href="https://fonts.googleapis.com/css2?family=Orbitron&family=Inter&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin:0;
+  display:flex;
+  height:100vh;
+  background:#020617;
+  color:white;
+  font-family:Inter;
 }
+
+/* SIDEBAR */
+.sidebar {
+  width:230px;
+  background:#020617;
+  border-right:1px solid #1e293b;
+  padding:20px;
+}
+
+.logo {
+  font-family:Orbitron;
+  color:#00ff9f;
+  font-size:20px;
+  margin-bottom:30px;
+}
+
+.menu div {
+  padding:10px;
+  margin-bottom:10px;
+  cursor:pointer;
+  border-radius:8px;
+}
+
+.menu div:hover {
+  background:#0f172a;
+}
+
+/* CONTENT */
+.content {
+  flex:1;
+  padding:30px;
+}
+
+/* CARD */
+.card {
+  background:#0f172a;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+  box-shadow:0 0 20px rgba(0,255,150,0.05);
+}
+
+button {
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:linear-gradient(90deg,#00ff9f,#00c3ff);
+  cursor:pointer;
+  margin-top:10px;
+}
+
+input, textarea {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:#020617;
+  border:1px solid #1e293b;
+  color:white;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <div class="logo">WeevZap 🚀</div>
+  <div class="menu">
+    <div>Dashboard</div>
+    <div>WhatsApp</div>
+    <div>Agente IA</div>
+    <div>Integrações</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="card">
+    <h2>Status</h2>
+    <p>WhatsApp: ❌ Desconectado</p>
+    <button onclick="connectWhats()">Conectar WhatsApp</button>
+  </div>
+
+  <div class="card">
+    <h2>Agente IA</h2>
+    <textarea id="prompt" placeholder="Digite o comportamento do seu agente..."></textarea>
+    <button onclick="savePrompt()">Salvar</button>
+  </div>
+
+  <div class="card">
+    <h2>Integrações</h2>
+
+    <input id="evo_url" placeholder="URL Evolution API">
+    <input id="evo_key" placeholder="API Key Evolution">
+
+    <input id="n8n" placeholder="Webhook n8n">
+    <input id="openai" placeholder="OpenAI Key">
+
+    <button onclick="saveIntegrations()">Salvar</button>
+  </div>
+
+</div>
+
+<script>
+
+const user = JSON.parse(localStorage.getItem("user"));
+
+function connectWhats(){
+  alert("Aqui vamos integrar com Evolution API no próximo passo");
+}
+
+async function saveIntegrations(){
+  await fetch("/save-integrations", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      user_id: user.id,
+      evolution_url: document.getElementById("evo_url").value,
+      evolution_key: document.getElementById("evo_key").value,
+      n8n_webhook: document.getElementById("n8n").value,
+      openai_key: document.getElementById("openai").value
+    })
+  });
+
+  alert("Integrações salvas!");
+}
+
+async function savePrompt(){
+  await fetch("/save-agent", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      user_id: user.id,
+      prompt: document.getElementById("prompt").value
+    })
+  });
+
+  alert("Prompt salvo!");
+}
+
 </script>
+
+</body>
+</html>
