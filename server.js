@@ -98,48 +98,38 @@ app.post("/save-integrations", async (req, res) => {
   res.json({ success: true });
 });
 
-// ===== AGENTE =====
-
-app.post("/save-agent", async (req, res) => {
-  const { user_id, prompt } = req.body;
-
-  const { error } = await supabase.from("agents").upsert({
-    user_id,
-    prompt
-  });
-
-  if (error) return res.status(400).json({ error: error.message });
-
-  res.json({ success: true });
-});
-
 // ===== WHATSAPP (EVOLUTION + N8N) =====
 
 app.post("/connect-whatsapp", async (req, res) => {
   const { user_id } = req.body;
 
-  const { data } = await supabase
+  // 🔥 PEGA SEMPRE A ÚLTIMA INTEGRAÇÃO
+  const { data, error } = await supabase
     .from("integrations")
     .select("*")
     .eq("user_id", user_id)
-    .single();
+    .order("id", { ascending: false })
+    .limit(1);
 
-  if (!data) return res.status(400).json({ error: "Integrações não encontradas" });
+  if (error || !data || data.length === 0) {
+    return res.status(400).json({ error: "Integrações não encontradas" });
+  }
+
+  const integration = data[0];
 
   try {
     const instanceName = "weevzap_" + user_id;
 
+    // 🔥 CHAMADA CORRETA DA EVOLUTION
     const response = await axios.post(
-      `${data.evolution_url}/instance/create`,
+      `${integration.evolution_url}/instance/create`,
       {
-        instanceName,
-        webhook: data.n8n_webhook,
-        webhook_by_events: true,
-        events: ["messages.upsert"]
+        instanceName: instanceName
       },
       {
         headers: {
-          apikey: data.evolution_key
+          "Content-Type": "application/json",
+          apikey: integration.evolution_key
         }
       }
     );
@@ -147,8 +137,11 @@ app.post("/connect-whatsapp", async (req, res) => {
     res.json(response.data);
 
   } catch (err) {
-    console.log(err.response?.data || err.message);
-    res.status(500).json({ error: "Erro ao conectar WhatsApp" });
+    console.log("ERRO EVOLUTION:", err.response?.data || err.message);
+
+    res.status(500).json({
+      error: err.response?.data?.message || "Erro ao conectar WhatsApp"
+    });
   }
 });
 
