@@ -22,16 +22,17 @@ body {
   background:#020617;
   padding:40px;
   border-radius:20px;
-  width:320px;
-  box-shadow:0 0 40px rgba(0,255,150,0.1);
+  width:340px;
+  box-shadow:0 0 60px rgba(0,255,150,0.15);
   text-align:center;
+  border:1px solid #0f172a;
 }
 
 .logo {
   font-family:Orbitron;
-  font-size:28px;
+  font-size:30px;
   color:#00ff9f;
-  margin-bottom:10px;
+  margin-bottom:5px;
 }
 
 .sub {
@@ -48,9 +49,14 @@ input {
   border:none;
   background:#0f172a;
   color:white;
+  outline:none;
 }
 
-button {
+input:focus {
+  border:1px solid #00ff9f;
+}
+
+.btn {
   width:100%;
   padding:12px;
   border:none;
@@ -60,16 +66,32 @@ button {
   font-weight:bold;
   cursor:pointer;
   margin-top:10px;
+  transition:0.2s;
 }
 
-button:hover {
+.btn:hover {
+  transform:scale(1.02);
   opacity:0.9;
+}
+
+.btn-secondary {
+  background:#0f172a;
+  color:#94a3b8;
+  border:1px solid #1e293b;
 }
 
 .msg {
   margin-top:15px;
   font-size:13px;
+  min-height:18px;
+}
+
+.success {
   color:#22c55e;
+}
+
+.error {
+  color:#ef4444;
 }
 </style>
 </head>
@@ -84,18 +106,28 @@ button:hover {
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Senha">
 
-  <button onclick="register()">Criar Conta</button>
-  <button onclick="login()">Entrar</button>
+  <button class="btn" onclick="login()">Entrar</button>
+  <button class="btn btn-secondary" onclick="register()">Criar Conta</button>
 
   <div class="msg" id="msg"></div>
 </div>
 
 <script>
 
+function showMsg(text, type="success"){
+  const msg = document.getElementById("msg");
+  msg.innerText = text;
+  msg.className = "msg " + type;
+}
+
 async function register(){
   const name = document.getElementById("name").value;
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
+
+  if(!name || !email || !password){
+    return showMsg("Preencha todos os campos", "error");
+  }
 
   const res = await fetch("/register", {
     method:"POST",
@@ -106,15 +138,19 @@ async function register(){
   const data = await res.json();
 
   if(data.error){
-    document.getElementById("msg").innerText = data.error;
+    showMsg(data.error, "error");
   } else {
-    document.getElementById("msg").innerText = "Conta criada! Verifique seu email.";
+    showMsg("Conta criada com sucesso! Agora faça login.", "success");
   }
 }
 
 async function login(){
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
+
+  if(!email || !password){
+    return showMsg("Preencha email e senha", "error");
+  }
 
   const res = await fetch("/login", {
     method:"POST",
@@ -125,10 +161,17 @@ async function login(){
   const data = await res.json();
 
   if(data.error){
-    document.getElementById("msg").innerText = data.error;
+    showMsg(data.error, "error");
   } else {
+    // 🔥 ESSENCIAL PRA O DASHBOARD FUNCIONAR
     localStorage.setItem("token", data.token);
-    window.location.href = "/dashboard";
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    showMsg("Login realizado!", "success");
+
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 800);
   }
 }
 
