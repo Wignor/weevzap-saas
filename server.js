@@ -9,27 +9,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// 🔥 SUA CONFIG CORRETA
 const SUPABASE_URL = "https://gmpogimfcftlydswejjg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_eCxoFqbJTRQ2e6k_lh47-A__CxPIXfj";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ================= ROTAS =================
+// ===== ROTAS =====
 
-// LOGIN PAGE
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// DASHBOARD
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
-// ================= AUTH =================
+// ===== AUTH =====
 
-// REGISTER
 app.post("/register", async (req, res) => {
   const { email, password, name } = req.body;
 
@@ -44,15 +40,13 @@ app.post("/register", async (req, res) => {
     {
       id: data.user.id,
       name,
-      email,
-      active: true
+      email
     }
   ]);
 
   res.json({ success: true });
 });
 
-// LOGIN
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -69,7 +63,34 @@ app.post("/login", async (req, res) => {
   });
 });
 
-// ================= START =================
+// ===== SALVAR INTEGRAÇÕES =====
+
+app.post("/save-integrations", async (req, res) => {
+  const { user_id, evolution_url, evolution_key, n8n_webhook, openai_key } = req.body;
+
+  await supabase.from("integrations").upsert({
+    user_id,
+    evolution_url,
+    evolution_key,
+    n8n_webhook,
+    openai_key
+  });
+
+  res.json({ success: true });
+});
+
+// ===== SALVAR PROMPT =====
+
+app.post("/save-agent", async (req, res) => {
+  const { user_id, prompt } = req.body;
+
+  await supabase.from("agents").upsert({
+    user_id,
+    prompt
+  });
+
+  res.json({ success: true });
+});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("🔥 Rodando na porta " + PORT));
+app.listen(PORT, () => console.log("🔥 SaaS rodando na porta " + PORT));
