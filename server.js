@@ -27,7 +27,42 @@ app.get("/dashboard", (req, res) => {
 
 // ===== AUTH =====
 
-app.post("/register", async (req, res) => {
+app.post("/connect-whatsapp", async (req, res) => {
+  const { user_id } = req.body;
+
+  const { data } = await supabase
+    .from("integrations")
+    .select("*")
+    .eq("user_id", user_id)
+    .single();
+
+  if (!data) return res.status(400).json({ error: "Integrações não encontradas" });
+
+  try {
+    const instanceName = "weevzap_" + user_id;
+
+    const response = await axios.post(
+      `${data.evolution_url}/instance/create`,
+      {
+        instanceName,
+        webhook: data.n8n_webhook, // 🔥 AQUI ESTÁ A MÁGICA
+        webhook_by_events: true,
+        events: ["messages.upsert"]
+      },
+      {
+        headers: {
+          apikey: data.evolution_key
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.log(err.response?.data || err.message);
+    res.status(500).json({ error: "Erro ao conectar WhatsApp" });
+  }
+});
   const { email, password, name } = req.body;
 
   const { data, error } = await supabase.auth.signUp({
