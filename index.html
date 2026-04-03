@@ -1,78 +1,117 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const { createClient } = require("@supabase/supabase-js");
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>WeevZap Login</title>
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
+<link href="https://fonts.googleapis.com/css2?family=Orbitron&family=Inter&display=swap" rel="stylesheet">
 
-// 🔥 CONFIG
-const SUPABASE_URL = "https://gmpogimfcftlydswejjg.supabase.co";
-const SUPABASE_KEY = "sb_publishable_eCxoFqbJTRQ2e6k_lh47-A__CxPIXfj";
+<style>
+body {
+  margin:0;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  font-family:Inter;
+  color:white;
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+.card {
+  background:#0f172a;
+  padding:30px;
+  border-radius:20px;
+  width:320px;
+}
 
-// =============================
-// ROTAS FRONT
-// =============================
+.logo {
+  font-family:Orbitron;
+  text-align:center;
+  font-size:28px;
+  color:#00ff9f;
+  margin-bottom:20px;
+}
 
-// LOGIN PAGE
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
+input {
+  width:100%;
+  padding:12px;
+  margin-bottom:12px;
+  border-radius:10px;
+  border:none;
+  background:#020617;
+  color:white;
+}
 
-// DASHBOARD
-app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "dashboard.html"));
-});
+button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(90deg,#00ff9f,#00c3ff);
+  cursor:pointer;
+}
+</style>
+</head>
 
-// =============================
-// AUTH
-// =============================
+<body>
 
-// REGISTER
-app.post("/register", async (req, res) => {
-  const { email, password, name } = req.body;
+<div class="card">
+  <div class="logo">WeevZap 🚀</div>
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
+  <input id="name" placeholder="Nome">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Senha">
+
+  <button onclick="login()">Entrar</button>
+  <button onclick="register()">Criar Conta</button>
+
+  <div id="msg"></div>
+</div>
+
+<script>
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch("/login", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ email, password })
   });
 
-  if (error) return res.status(400).json({ error: error.message });
+  const data = await res.json();
 
-  await supabase.from("users").insert([
-    {
-      id: data.user.id,
-      name,
-      email,
-      active: true
-    }
-  ]);
+  if(data.token){
+    localStorage.setItem("token", data.token);
+    window.location.href = "/dashboard";
+  } else {
+    document.getElementById("msg").innerText = data.error;
+  }
+}
 
-  res.json({ success: true });
-});
+async function register() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const name = document.getElementById("name").value;
 
-// LOGIN
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+  const res = await fetch("/register", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ email, password, name })
   });
 
-  if (error) return res.status(401).json({ error: error.message });
+  const data = await res.json();
 
-  res.json({
-    token: data.session.access_token,
-    user: data.user
-  });
-});
+  if(data.success){
+    alert("Conta criada!");
+  } else {
+    document.getElementById("msg").innerText = data.error;
+  }
+}
 
-// =============================
+</script>
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("🔥 Rodando na porta " + PORT));
+</body>
+</html>
