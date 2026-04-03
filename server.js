@@ -1,27 +1,35 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
-// 🔥 CONFIG (COLOQUE SUAS CHAVES)
+// 🔥 SUA CONFIG CORRETA
 const SUPABASE_URL = "https://gmpogimfcftlydswejjg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_eCxoFqbJTRQ2e6k_lh47-A__CxPIXfj";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ✅ TESTE
-const path = require("path");
+// ================= ROTAS =================
 
-app.use(express.static(__dirname));
-
+// LOGIN PAGE
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ✅ CADASTRO
+// DASHBOARD
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "dashboard.html"));
+});
+
+// ================= AUTH =================
+
+// REGISTER
 app.post("/register", async (req, res) => {
   const { email, password, name } = req.body;
 
@@ -44,7 +52,7 @@ app.post("/register", async (req, res) => {
   res.json({ success: true });
 });
 
-// ✅ LOGIN
+// LOGIN
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -55,8 +63,13 @@ app.post("/login", async (req, res) => {
 
   if (error) return res.status(401).json({ error: error.message });
 
-  res.json(data);
+  res.json({
+    token: data.session.access_token,
+    user: data.user
+  });
 });
 
+// ================= START =================
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor rodando na porta " + PORT));
+app.listen(PORT, () => console.log("🔥 Rodando na porta " + PORT));
