@@ -10,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// 🔥 SUPABASE
 const SUPABASE_URL = "https://gmpogimfcftlydswejjg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_eCxoFqbJTRQ2e6k_lh47-A__CxPIXfj";
 
@@ -27,62 +28,34 @@ app.get("/dashboard", (req, res) => {
 
 // ===== AUTH =====
 
-app.post("/connect-whatsapp", async (req, res) => {
-  const { user_id } = req.body;
-
-  const { data } = await supabase
-    .from("integrations")
-    .select("*")
-    .eq("user_id", user_id)
-    .single();
-
-  if (!data) return res.status(400).json({ error: "Integrações não encontradas" });
-
-  try {
-    const instanceName = "weevzap_" + user_id;
-
-    const response = await axios.post(
-      `${data.evolution_url}/instance/create`,
-      {
-        instanceName,
-        webhook: data.n8n_webhook, // 🔥 AQUI ESTÁ A MÁGICA
-        webhook_by_events: true,
-        events: ["messages.upsert"]
-      },
-      {
-        headers: {
-          apikey: data.evolution_key
-        }
-      }
-    );
-
-    res.json(response.data);
-
-  } catch (err) {
-    console.log(err.response?.data || err.message);
-    res.status(500).json({ error: "Erro ao conectar WhatsApp" });
-  }
-});
+// ✅ REGISTER
+app.post("/register", async (req, res) => {
   const { email, password, name } = req.body;
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
 
-  if (error) return res.status(400).json({ error: error.message });
+    if (error) return res.status(400).json({ error: error.message });
 
-  await supabase.from("users").insert([
-    {
-      id: data.user.id,
-      name,
-      email
-    }
-  ]);
+    await supabase.from("users").insert([
+      {
+        id: data.user.id,
+        name,
+        email
+      }
+    ]);
 
-  res.json({ success: true });
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).json({ error: "Erro no registro" });
+  }
 });
 
+// ✅ LOGIN
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -99,7 +72,7 @@ app.post("/login", async (req, res) => {
   });
 });
 
-// ===== SALVAR INTEGRAÇÕES =====
+// ===== INTEGRAÇÕES =====
 
 app.post("/save-integrations", async (req, res) => {
   const {
@@ -125,7 +98,7 @@ app.post("/save-integrations", async (req, res) => {
   res.json({ success: true });
 });
 
-// ===== SALVAR PROMPT =====
+// ===== AGENTE =====
 
 app.post("/save-agent", async (req, res) => {
   const { user_id, prompt } = req.body;
@@ -140,7 +113,7 @@ app.post("/save-agent", async (req, res) => {
   res.json({ success: true });
 });
 
-// ===== CONECTAR WHATSAPP (EVOLUTION) =====
+// ===== WHATSAPP (EVOLUTION + N8N) =====
 
 app.post("/connect-whatsapp", async (req, res) => {
   const { user_id } = req.body;
@@ -154,10 +127,15 @@ app.post("/connect-whatsapp", async (req, res) => {
   if (!data) return res.status(400).json({ error: "Integrações não encontradas" });
 
   try {
+    const instanceName = "weevzap_" + user_id;
+
     const response = await axios.post(
       `${data.evolution_url}/instance/create`,
       {
-        instanceName: "weevzap_" + user_id
+        instanceName,
+        webhook: data.n8n_webhook,
+        webhook_by_events: true,
+        events: ["messages.upsert"]
       },
       {
         headers: {
@@ -167,10 +145,14 @@ app.post("/connect-whatsapp", async (req, res) => {
     );
 
     res.json(response.data);
+
   } catch (err) {
+    console.log(err.response?.data || err.message);
     res.status(500).json({ error: "Erro ao conectar WhatsApp" });
   }
 });
+
+// ===== START =====
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🔥 SaaS rodando na porta " + PORT));
