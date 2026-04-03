@@ -4,38 +4,39 @@
 <meta charset="UTF-8">
 <title>WeevZap Painel</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron&family=Inter&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
 body {
   margin:0;
   display:flex;
   height:100vh;
-  background:#020617;
+  background: radial-gradient(circle at top, #020617, #000);
   color:white;
   font-family:Inter;
 }
 
 /* SIDEBAR */
 .sidebar {
-  width:230px;
+  width:240px;
   background:#020617;
   border-right:1px solid #1e293b;
-  padding:20px;
+  padding:25px;
 }
 
 .logo {
   font-family:Orbitron;
   color:#00ff9f;
-  font-size:20px;
-  margin-bottom:30px;
+  font-size:22px;
+  margin-bottom:40px;
 }
 
 .menu div {
-  padding:10px;
+  padding:12px;
   margin-bottom:10px;
   cursor:pointer;
-  border-radius:8px;
+  border-radius:10px;
+  transition:0.2s;
 }
 
 .menu div:hover {
@@ -45,35 +46,52 @@ body {
 /* CONTENT */
 .content {
   flex:1;
-  padding:30px;
+  padding:40px;
 }
 
 /* CARD */
 .card {
   background:#0f172a;
-  padding:20px;
+  padding:25px;
   border-radius:15px;
-  margin-bottom:20px;
-  box-shadow:0 0 20px rgba(0,255,150,0.05);
+  margin-bottom:25px;
+  box-shadow:0 0 30px rgba(0,255,150,0.05);
 }
 
+/* BUTTON */
 button {
-  padding:10px;
+  padding:12px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   background:linear-gradient(90deg,#00ff9f,#00c3ff);
   cursor:pointer;
-  margin-top:10px;
+  margin-top:15px;
+  width:100%;
+  font-weight:bold;
 }
 
-input, textarea {
+button:hover {
+  opacity:0.9;
+}
+
+/* INPUT */
+input {
   width:100%;
-  padding:10px;
+  padding:12px;
   margin-top:10px;
   background:#020617;
   border:1px solid #1e293b;
   color:white;
-  border-radius:8px;
+  border-radius:10px;
+}
+
+/* STATUS */
+.status-ok {
+  color:#22c55e;
+}
+
+.status-off {
+  color:#ef4444;
 }
 </style>
 </head>
@@ -85,46 +103,44 @@ input, textarea {
   <div class="menu">
     <div>Dashboard</div>
     <div>WhatsApp</div>
-    <div>Agente IA</div>
     <div>Integrações</div>
   </div>
 </div>
 
 <div class="content">
 
+  <!-- STATUS -->
   <div class="card">
     <h2>Status</h2>
-    <p>WhatsApp: ❌ Desconectado</p>
+    <p id="status">WhatsApp: <span class="status-off">Desconectado</span></p>
     <button onclick="connectWhats()">Conectar WhatsApp</button>
   </div>
 
+  <!-- INTEGRAÇÕES -->
   <div class="card">
-    <h2>Agente IA</h2>
-    <textarea id="prompt" placeholder="Digite o comportamento do seu agente..."></textarea>
-    <button onclick="savePrompt()">Salvar</button>
+    <h2>Integrações</h2>
+
+    <input id="evo_url" placeholder="URL Evolution API">
+    <input id="evo_key" placeholder="API Key Evolution">
+
+    <input id="n8n" placeholder="Webhook n8n">
+    <input id="openai" placeholder="OpenAI API Key">
+    <input id="assistant" placeholder="Assistant ID OpenAI">
+
+    <button onclick="saveIntegrations()">Salvar Integrações</button>
   </div>
 
-  <div class="card">
-  <h2>Integrações</h2>
-
-  <input id="evo_url" placeholder="URL Evolution API">
-  <input id="evo_key" placeholder="API Key Evolution">
-
-  <input id="n8n" placeholder="Webhook n8n">
-  <input id="openai" placeholder="OpenAI Key">
-  <input id="assistant" placeholder="Assistant ID OpenAI">
-
-  <button onclick="saveIntegrations()">Salvar Integrações</button>
 </div>
-
-</div>
-
-<script>
 
 <script>
 
 const user = JSON.parse(localStorage.getItem("user"));
 
+if(!user){
+  window.location.href = "/";
+}
+
+// 🚀 CONECTAR WHATS
 async function connectWhats(){
   const res = await fetch("/connect-whatsapp", {
     method:"POST",
@@ -134,11 +150,19 @@ async function connectWhats(){
 
   const data = await res.json();
 
-  alert(data.qrcode ? "QR Code gerado!" : "Erro ao conectar");
+  if(data.error){
+    alert(data.error);
+  } else {
+    document.getElementById("status").innerHTML =
+      'WhatsApp: <span class="status-ok">Conectado (escaneie QR no Evolution)</span>';
+
+    alert("Instância criada! Vá no Evolution e escaneie o QR Code.");
+  }
 }
 
+// 💾 SALVAR INTEGRAÇÕES
 async function saveIntegrations(){
-  await fetch("/save-integrations", {
+  const res = await fetch("/save-integrations", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
@@ -151,20 +175,13 @@ async function saveIntegrations(){
     })
   });
 
-  alert("Integrações salvas!");
-}
+  const data = await res.json();
 
-async function savePrompt(){
-  await fetch("/save-agent", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      user_id: user.id,
-      prompt: document.getElementById("prompt").value
-    })
-  });
-
-  alert("Prompt salvo!");
+  if(data.error){
+    alert(data.error);
+  } else {
+    alert("Integrações salvas com sucesso!");
+  }
 }
 
 </script>
