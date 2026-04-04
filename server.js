@@ -105,7 +105,7 @@ app.post("/save-integrations", async (req, res) => {
   res.json({ success: true });
 });
 
-// ===== WHATSAPP (EVOLUTION + N8N) =====
+// ===== WHATSAPP (EVOLUTION) =====
 
 app.post("/connect-whatsapp", async (req, res) => {
   const { user_id } = req.body;
@@ -122,17 +122,21 @@ app.post("/connect-whatsapp", async (req, res) => {
   const integration = data[0];
 
   try {
-    const instanceName = "weevzap_" + user_id;
+    // 🔥 garante que não tenha / duplicado
+    const baseUrl = integration.evolution_url.replace(/\/$/, "");
+
+    // 🔥 evita erro de instância duplicada
+    const instanceName = "weevzap_" + user_id + "_" + Date.now();
 
     const response = await axios.post(
-      `${integration.evolution_url}/instance/create`,
+      `${baseUrl}/instance/create`,
       {
         instanceName: instanceName
       },
       {
         headers: {
           "Content-Type": "application/json",
-          apikey: integration.evolution_key
+          Authorization: `Bearer ${integration.evolution_key}`
         }
       }
     );
@@ -140,10 +144,11 @@ app.post("/connect-whatsapp", async (req, res) => {
     res.json(response.data);
 
   } catch (err) {
-    console.log("ERRO EVOLUTION:", err.response?.data || err.message);
+    console.log("ERRO EVOLUTION COMPLETO:");
+    console.log(err.response?.data || err.message);
 
     res.status(500).json({
-      error: err.response?.data?.message || "Erro ao conectar WhatsApp"
+      error: err.response?.data?.message || err.message || "Erro ao conectar WhatsApp"
     });
   }
 });
