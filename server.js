@@ -129,11 +129,8 @@ app.post("/connect-whatsapp", async (req, res) => {
     const instanceName = "weevzap_" + user_id + "_" + Date.now();
 
     const response = await axios.post(
-      `${baseUrl}/instance/create`,
-      {
-        instanceName: instanceName
-      },
-      {
+  `${baseUrl}/instance/create/${instanceName}`,
+  {},
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${integration.evolution_key}`
