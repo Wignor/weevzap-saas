@@ -84,14 +84,21 @@ app.post("/save-integrations", async (req, res) => {
     assistant_id
   } = req.body;
 
-  const { error } = await supabase.from("integrations").upsert({
-    user_id,
-    evolution_url,
-    evolution_key,
-    n8n_webhook,
-    openai_key,
-    assistant_id
-  });
+  const { error } = await supabase
+    .from("integrations")
+    .upsert(
+      {
+        user_id,
+        evolution_url,
+        evolution_key,
+        n8n_webhook,
+        openai_key,
+        assistant_id
+      },
+      {
+        onConflict: "user_id"
+      }
+    );
 
   if (error) return res.status(400).json({ error: error.message });
 
@@ -103,13 +110,10 @@ app.post("/save-integrations", async (req, res) => {
 app.post("/connect-whatsapp", async (req, res) => {
   const { user_id } = req.body;
 
-  // 🔥 PEGA SEMPRE A ÚLTIMA INTEGRAÇÃO
   const { data, error } = await supabase
     .from("integrations")
     .select("*")
-    .eq("user_id", user_id)
-    .order("id", { ascending: false })
-    .limit(1);
+    .eq("user_id", user_id);
 
   if (error || !data || data.length === 0) {
     return res.status(400).json({ error: "Integrações não encontradas" });
@@ -120,7 +124,6 @@ app.post("/connect-whatsapp", async (req, res) => {
   try {
     const instanceName = "weevzap_" + user_id;
 
-    // 🔥 CHAMADA CORRETA DA EVOLUTION
     const response = await axios.post(
       `${integration.evolution_url}/instance/create`,
       {
